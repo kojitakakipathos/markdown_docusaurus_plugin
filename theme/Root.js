@@ -1,10 +1,10 @@
-// src/theme/Root.js
+// theme/Root.js - Plugin-provided theme component
 import React, { useEffect } from 'react';
 import { useLocation } from '@docusaurus/router';
 import { createRoot } from 'react-dom/client';
-import MarkdownActionsDropdown from '@site/src/components/MarkdownActionsDropdown';
+import MarkdownActionsDropdown from '../components/MarkdownActionsDropdown';
 
-function Root({ children }) {
+export default function Root({ children }) {
   const { hash, pathname } = useLocation();
 
   useEffect(() => {
@@ -69,5 +69,3 @@ function Root({ children }) {
 
   return <>{children}</>;
 }
-
-export default Root;

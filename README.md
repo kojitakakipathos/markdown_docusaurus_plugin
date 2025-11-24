@@ -47,27 +47,9 @@ module.exports = {
 };
 ```
 
-### 2. Copy Theme Files
+**That's it!** The plugin automatically provides all necessary components. No manual file copying required.
 
-Copy the theme files from this package to your project:
-
-**Option A: Manual Copy**
-```bash
-# Copy Root.js theme override
-cp node_modules/docusaurus-markdown-source-plugin/src/theme/Root.js src/theme/Root.js
-
-# Copy MarkdownActionsDropdown component
-mkdir -p src/components/MarkdownActionsDropdown
-cp node_modules/docusaurus-markdown-source-plugin/src/components/MarkdownActionsDropdown/index.js src/components/MarkdownActionsDropdown/index.js
-```
-
-**Option B: Create Symlinks** (advanced users)
-```bash
-ln -s ../../node_modules/docusaurus-markdown-source-plugin/src/theme src/theme
-ln -s ../../node_modules/docusaurus-markdown-source-plugin/src/components/MarkdownActionsDropdown src/components/MarkdownActionsDropdown
-```
-
-### 3. Add Dropdown Styles
+### 2. Add Dropdown Styles (Optional)
 
 Add these styles to your `src/css/custom.css`:
 
@@ -155,7 +137,7 @@ article .markdown header h1 {
 }
 ```
 
-### 4. Build and Test
+### 3. Build and Test
 
 ```bash
 npm run build
@@ -163,6 +145,39 @@ npm run serve
 ```
 
 Visit any docs page - you should see the "Open Markdown" dropdown in the header!
+
+## Migration from v1.x
+
+If you're upgrading from v1.x where you manually copied theme files:
+
+### 1. Remove Manually Copied Files
+
+```bash
+# Remove the manually copied theme file
+rm -rf src/theme/Root.js
+
+# Remove the manually copied component
+rm -rf src/components/MarkdownActionsDropdown/
+```
+
+### 2. Update the Plugin
+
+```bash
+npm update docusaurus-markdown-source-plugin
+```
+
+### 3. Keep Your Custom CSS
+
+The CSS styles in `src/css/custom.css` remain unchanged - no action needed.
+
+### 4. Rebuild
+
+```bash
+npm run build
+npm run serve
+```
+
+**Note:** The plugin now bundles all components internally. If you had customizations to the copied files, you'll need to use Docusaurus's [swizzling](https://docusaurus.io/docs/swizzling) feature to override them.
 
 ## How It Works
 
@@ -333,18 +348,19 @@ You can customize the dropdown appearance by overriding these CSS classes in you
 
 ### Dropdown Not Appearing
 
-1. **Check path configuration**: Ensure the component checks for the correct path. If your docs are at `/documentation/` instead of `/docs/`, edit `src/components/MarkdownActionsDropdown/index.js`:
-   ```javascript
-   const isDocsPage = currentPath.startsWith('/documentation/');
-   ```
+1. **Check plugin installation**: Ensure the plugin is in your `docusaurus.config.js` plugins array.
 
-2. **Verify Root.js is being used**: Check browser console for errors. The file should be at `src/theme/Root.js`.
+2. **Rebuild your site**: After installing, run `npm run build` to ensure the plugin is loaded.
 
-3. **Check DOM selector**: Open DevTools and run:
+3. **Check browser console**: Look for any errors that might indicate component loading issues.
+
+4. **Verify path configuration**: The default path is `/docs/`. If your docs use a different path (e.g., `/documentation/`), you may need to swizzle the component and customize it.
+
+5. **Check DOM structure**: Open DevTools and run:
    ```javascript
    document.querySelector('article .markdown header')
    ```
-   If it returns `null`, your theme has a different structure. Adjust the selector in `Root.js`.
+   If it returns `null`, your theme has a different structure and may require swizzling for customization.
 
 ### 404 When Accessing .md URLs
 
@@ -384,22 +400,16 @@ You can customize the dropdown appearance by overriding these CSS classes in you
 
 ### Using with Blog
 
-To enable markdown source viewing for your blog, modify the paths:
+To enable markdown source viewing for your blog:
 
-1. In `src/components/MarkdownActionsDropdown/index.js`:
-   ```javascript
-   const isDocsPage = currentPath.startsWith('/blog/');
+1. **Swizzle the components**: Use Docusaurus's swizzle feature to customize the bundled components:
+   ```bash
+   npm run swizzle docusaurus-markdown-source-plugin Root -- --eject
    ```
 
-2. In `src/theme/Root.js`:
-   ```javascript
-   if (!pathname.startsWith('/blog/')) return;
-   ```
+2. **Modify the swizzled files** to use blog paths instead of docs paths.
 
-3. Update the plugin to process blog files (modify `index.js` in the plugin):
-   ```javascript
-   const docsDir = path.join(context.siteDir, 'blog');
-   ```
+3. **Update plugin configuration**: You may need to extend the plugin to process blog files in addition to docs files.
 
 ### Custom URL Pattern
 

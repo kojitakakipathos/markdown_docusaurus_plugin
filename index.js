@@ -184,6 +184,11 @@ module.exports = function markdownSourcePlugin(context, options) {
   return {
     name: 'markdown-source-plugin',
 
+    // Provide theme components from the plugin (eliminates need for manual copying)
+    getThemePath() {
+      return path.resolve(__dirname, './theme');
+    },
+
     async postBuild({ outDir }) {
       const docsDir = path.join(context.siteDir, 'docs');
       const buildDir = outDir;
