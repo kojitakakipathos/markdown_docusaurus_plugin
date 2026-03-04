@@ -152,11 +152,13 @@ Visit any docs page - you should see the "Open Markdown" dropdown in the header!
 
 ## How It Works
 
-1. **Build Time**: The plugin processes all markdown files in `docs/` during build:
+1. **Build Time**: The plugin uses Docusaurus route metadata to discover and process markdown files during build:
+   - Reads `route.metadata.sourceFilePath` from the route tree — no filesystem scanning
    - Removes Docusaurus-specific syntax (front matter, imports, MDX components)
    - Converts HTML elements back to markdown
-   - Converts relative image paths to absolute paths
+   - Converts relative image paths to absolute paths using actual route URLs
    - Copies image directories to build output
+   - Automatically handles custom `routeBasePath`, versioned docs, and i18n
 
 2. **Runtime**: The React component adds a dropdown menu to each docs page with two actions:
    - **View as Markdown**: Opens the raw markdown file in a new tab
@@ -337,7 +339,7 @@ You can customize the dropdown appearance by overriding these CSS classes in you
 
 1. **Verify plugin execution**: Check build logs for:
    ```
-   [markdown-source-plugin] Copying markdown source files...
+   [markdown-source-plugin] Processing markdown source files...
    ```
 
 2. **Check build output**: Run:
@@ -346,7 +348,13 @@ You can customize the dropdown appearance by overriding these CSS classes in you
    ```
    If no files appear, the plugin didn't run.
 
-3. **Verify plugin registration**: Ensure the plugin is in the `plugins` array in `docusaurus.config.js`.
+3. **Check route count**: Look for this in your build logs:
+   ```
+   [markdown-source-plugin] Found 68 markdown routes
+   ```
+   If it says 0 routes, your docs plugin may not be providing `sourceFilePath` metadata.
+
+4. **Verify plugin registration**: Ensure the plugin is in the `plugins` array in `docusaurus.config.js`.
 
 ### Headers Not Being Sent
 
@@ -369,17 +377,25 @@ You can customize the dropdown appearance by overriding these CSS classes in you
 
 ## Advanced Configuration
 
-### Custom Paths and Blog Support
+### Custom Docs Path
 
-The plugin currently supports the default `/docs/` path out of the box.
+The build pipeline automatically supports custom `routeBasePath` configurations — it reads route metadata directly from Docusaurus, so no plugin config is needed for the build step.
 
-For blog support or custom paths, you can swizzle the components if needed:
+The UI dropdown currently targets `/docs/` pages by default. If your docs use a different URL path (e.g., `/documentation/`), you can swizzle the component to customize it:
 
 ```bash
 npm run swizzle docusaurus-markdown-source-plugin Root -- --eject
 ```
 
-**Note:** Swizzling means you'll manually maintain these files and won't receive automatic updates. Native configuration support for custom paths is planned for a future release.
+### Blog Support
+
+For blog support, swizzle the components and modify the path detection logic:
+
+```bash
+npm run swizzle docusaurus-markdown-source-plugin Root -- --eject
+```
+
+**Note:** Swizzling means you'll manually maintain these files and won't receive automatic updates.
 
 ## Contributing
 
