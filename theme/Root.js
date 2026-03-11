@@ -1,5 +1,5 @@
 // theme/Root.js - Plugin-provided theme component
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from '@docusaurus/router';
 import { createRoot } from 'react-dom/client';
 import { usePluginData } from '@docusaurus/useGlobalData';
@@ -8,6 +8,7 @@ import MarkdownActionsDropdown from '../components/MarkdownActionsDropdown';
 export default function Root({ children }) {
   const { hash, pathname } = useLocation();
   const { docsPath } = usePluginData('markdown-source-plugin');
+  const dropdownRootRef = useRef(null);
 
   useEffect(() => {
     if (hash) {
@@ -40,35 +41,58 @@ export default function Root({ children }) {
 
   // Inject dropdown button into article header
   useEffect(() => {
-    const injectDropdown = () => {
-      // Only inject on docs pages
-      // Match docsPath prefix or exact path (handles trailingSlash: false)
-      if (docsPath !== '/' && !pathname.startsWith(docsPath) && pathname !== docsPath.slice(0, -1)) return;
+    const isDocsPage =
+      docsPath === '/' ||
+      pathname.startsWith(docsPath) ||
+      pathname === docsPath.slice(0, -1);
 
-      const articleHeader = document.querySelector('article .markdown header');
-      if (!articleHeader) return;
+    if (!isDocsPage) return;
 
-      // Check if already injected
-      if (articleHeader.querySelector('.markdown-actions-container')) return;
-
-      // Create container for the dropdown
-      const container = document.createElement('div');
-      container.className = 'markdown-actions-container';
-
-      // Append to header
-      articleHeader.appendChild(container);
-
-      // Render React component into container
-      const root = createRoot(container);
-      root.render(<MarkdownActionsDropdown />);
+    const cleanup = () => {
+      if (dropdownRootRef.current) {
+        dropdownRootRef.current.unmount();
+        dropdownRootRef.current = null;
+      }
+      const container = document.querySelector('.markdown-actions-container');
+      if (container) container.remove();
     };
 
-    // Try to inject after a short delay to ensure DOM is ready
-    const delays = [0, 100, 300];
-    const timers = delays.map(delay => setTimeout(injectDropdown, delay));
+    const injectDropdown = () => {
+      const articleHeader = document.querySelector('article .markdown header');
+      if (!articleHeader) return false;
+
+      // Check if already injected
+      if (articleHeader.querySelector('.markdown-actions-container')) return true;
+
+      const container = document.createElement('div');
+      container.className = 'markdown-actions-container';
+      articleHeader.appendChild(container);
+
+      const root = createRoot(container);
+      root.render(<MarkdownActionsDropdown />);
+      dropdownRootRef.current = root;
+
+      return true;
+    };
+
+    // Fast path: header already in DOM (client-side navigation)
+    if (injectDropdown()) {
+      return cleanup;
+    }
+
+    // Cold-load path: observe DOM until header appears after hydration
+    const target = document.querySelector('main') || document.body;
+    const observer = new MutationObserver(() => {
+      if (injectDropdown()) {
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(target, { childList: true, subtree: true });
 
     return () => {
-      timers.forEach(t => clearTimeout(t));
+      observer.disconnect();
+      cleanup();
     };
   }, [pathname, docsPath]);
 
